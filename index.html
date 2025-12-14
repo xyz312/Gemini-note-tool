@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Gemini 结构化笔记</title>
+    <style>
+        /* 这里的 CSS 样式完全保持不变，只是为了节省你的复制时间，我已将之前所有样式压缩在这里 */
+        :root{--bg-color:#F7F7F5;--card-bg:#FFFFFF;--text-primary:#37352F;--text-secondary:#6B6B6B;--accent-blue:#007AFF;--accent-yellow:#EBCB8B;--callout-bg-yellow:#FFF9E6;--callout-border-yellow:#EBCB8B;--callout-bg-blue:#EAF5FF;--callout-border-blue:#007AFF}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg-color);margin:0;padding:20px 15px;color:var(--text-primary);line-height:1.6;min-height:100vh;display:flex;flex-direction:column}h1.app-title{font-size:20px;margin:0 0 15px 0;text-align:center;color:var(--text-primary);display:flex;align-items:center;justify-content:center;gap:8px}.input-wrapper{margin-bottom:20px}textarea{width:100%;height:100px;padding:15px;border:none;border-radius:12px;font-family:inherit;font-size:14px;resize:none;background:var(--card-bg);box-shadow:0 2px 8px rgba(0,0,0,.05);transition:all .2s}textarea:focus{outline:0;box-shadow:0 4px 12px rgba(0,122,255,.15)}textarea::placeholder{color:#aaa}#card-container{background:var(--card-bg);padding:30px 25px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);margin-bottom:80px;position:relative;overflow:hidden}#card-container::before{content:'';position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#FF6B6B,#FFD93D,#6BCB77,#4D96FF)}#content h1,#content h2,#content h3{margin-top:1.5em;margin-bottom:.8em;font-weight:700;position:relative}#content h1{font-size:24px;border-bottom:2px solid #eee;padding-bottom:10px}#content h2{font-size:20px;color:#444;padding-left:12px;border-left:4px solid var(--accent-blue)}#content h3{font-size:17px;color:#555;display:flex;align-items:center}#content h3::before{content:'🔹';font-size:14px;margin-right:8px}#content p{margin-bottom:1em}#content ul,#content ol{padding-left:20px;margin-bottom:1em}#content li{margin-bottom:.5em;position:relative}#content ul>li{list-style-type:none}#content ul>li::before{content:'•';color:var(--accent-blue);font-weight:700;display:inline-block;width:1em;margin-left:-1em}#content strong{font-weight:700;color:#000;background:linear-gradient(to bottom,transparent 60%,var(--accent-yellow) 60%);padding:0 2px}.list-title{font-weight:600;color:var(--accent-blue);margin-right:4px}.callout{padding:15px 20px;margin:1.5em 0;border-radius:8px;border-left:4px solid;font-size:14px;display:flex;gap:10px}.callout-icon{font-size:18px;flex-shrink:0}.callout.note{background:var(--callout-bg-blue);border-color:var(--callout-border-blue)}.callout.tip{background:var(--callout-bg-yellow);border-color:var(--callout-border-yellow)}.callout.warning{background:#FFF0F0;border-color:#FF4D4F}#content pre{background:#282C34;color:#ABB2BF;padding:15px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:13px;margin:1.5em 0}#content code{background:rgba(0,0,0,.06);color:#E74C3C;padding:2px 5px;border-radius:4px;font-family:monospace;font-size:.9em}#content pre code{background:0 0;color:inherit;padding:0}.action-bar{position:fixed;bottom:25px;left:50%;transform:translateX(-50%);z-index:100}.main-btn{background:linear-gradient(135deg,#007AFF,#00C6FF);color:#fff;border:none;padding:14px 30px;border-radius:50px;font-size:16px;font-weight:600;box-shadow:0 8px 20px rgba(0,122,255,.3);cursor:pointer;display:flex;align-items:center;gap:8px;transition:transform .1s}.main-btn:active{transform:translateX(-50%) scale(.96)}#result-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:20px}#result-overlay img{max-width:100%;max-height:85%;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.4);object-fit:contain}.close-btn{margin-top:20px;background:rgba(255,255,255,.2);color:#fff;border:none;padding:10px 24px;border-radius:30px;font-size:14px;cursor:pointer}
+    </style>
+    <script src="https://cdn.staticfile.org/marked/4.3.0/marked.min.js"></script>
+    <script src="https://cdn.staticfile.org/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <h1 class="app-title">✨ Gemini 结构化笔记</h1>
+    <div class="input-wrapper">
+        <textarea id="input-area" placeholder="粘贴 Gemini 的回答，我会自动整理排版..."></textarea>
+    </div>
+    
+    <div id="card-container">
+        <div id="content">
+            <p style="color: #aaa; text-align: center; margin-top: 20px;">请在上方输入内容，预览将在此显示...</p>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <button class="main-btn" onclick="generateImage()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            整理并生成图片
+        </button>
+    </div>
+
+    <div id="result-overlay" onclick="if(event.target===this) this.style.display='none'">
+        <img id="result-img" />
+        <button class="close-btn" onclick="document.getElementById('result-overlay').style.display='none'">关闭预览</button>
+    </div>
+
+    <script>
+        const input = document.getElementById('input-area');
+        const contentDiv = document.getElementById('content');
+
+        // 等待 marked 库加载完成后再运行
+        window.onload = function() {
+            if (typeof marked === 'undefined') {
+                alert('资源加载失败，请检查网络或刷新页面');
+                return;
+            }
+            marked.setOptions({ breaks: true, headerIds: false });
+        };
+
+        function preprocessText(text) {
+            let processed = text;
+            processed = processed.replace(/^(\s*[-*1-9.]+\s+)(.+?)(：|:)/gm, '$1<span class="list-title">$2$3</span>');
+            processed = processed.replace(/^(\s*(注意|Warning|警告)[：:])(.*)$/gm, '<div class="callout warning"><span class="callout-icon">⚠️</span><div><strong>$2</strong>$3</div></div>');
+            processed = processed.replace(/^(\s*(提示|Tip|建议)[：:])(.*)$/gm, '<div class="callout tip"><span class="callout-icon">💡</span><div><strong>$2</strong>$3</div></div>');
+            processed = processed.replace(/^(\s*(总结|Note|说明)[：:])(.*)$/gm, '<div class="callout note"><span class="callout-icon">📝</span><div><strong>$2</strong>$3</div></div>');
+            return processed;
+        }
+
+        input.addEventListener('input', (e) => {
+            const rawValue = e.target.value;
+            if (!rawValue.trim()) {
+                contentDiv.innerHTML = '<p style="color: #aaa; text-align: center; margin-top: 20px;">请在上方输入内容，预览将在此显示...</p>';
+                return;
+            }
+            const preprocessed = preprocessText(rawValue);
+            contentDiv.innerHTML = marked.parse(preprocessed);
+        });
+
+        function generateImage() {
+            const element = document.getElementById("card-container");
+            if (!input.value.trim()) { alert("请先输入一些内容！"); return; }
+            const btn = document.querySelector('.main-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🔄 正在生成...'; btn.disabled = true;
+            window.scrollTo(0,0); 
+
+            html2canvas(element, {
+                scale: 3, 
+                useCORS: true,
+                backgroundColor: null,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    clonedDoc.getElementById('card-container').style.marginBottom = '0';
+                }
+            }).then(canvas => {
+                document.getElementById('result-img').src = canvas.toDataURL("image/png");
+                document.getElementById('result-overlay').style.display = 'flex';
+                btn.innerHTML = originalText; btn.disabled = false;
+            }).catch(err => {
+                alert("生成失败：" + err);
+                btn.innerHTML = originalText; btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
