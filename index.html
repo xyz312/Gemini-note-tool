@@ -3,165 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemini 笔记卡片生成器</title>
-    <!-- 引入 Tailwind CSS 进行快速样式 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Marked 解析 Markdown -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- 引入 html2canvas 生成图片 -->
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <title>Gemini 笔记卡片 V2 (国内极速版)</title>
+    <!-- 引入国内源的 Marked (解析 Markdown) -->
+    <script src="https://cdn.staticfile.org/marked/4.3.0/marked.min.js"></script>
+    <!-- 引入国内源的 html2canvas (生成图片) -->
+    <script src="https://cdn.staticfile.org/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
-        /* 自定义字体，更像笔记 */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; }
-        
-        /* 预览区域的特殊样式 */
-        #capture-area {
-            background: linear-gradient(135deg, #fffbf0 0%, #fff 100%);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        /* --- 基础重置 --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
         }
 
-        /* 针对 Markdown 内容的排版优化 */
-        .markdown-body h1 { font-size: 1.5rem; font-weight: 800; color: #1f2937; margin-bottom: 0.5rem; line-height: 1.2; border-bottom: 3px solid #FCD34D; display: inline-block; padding-bottom: 4px; }
-        .markdown-body h2 { font-size: 1.15rem; font-weight: 700; color: #374151; margin-top: 1.2rem; margin-bottom: 0.5rem; background: #e5e7eb; padding: 4px 10px; border-radius: 6px; display: inline-block; }
-        .markdown-body h3 { font-size: 1rem; font-weight: 600; color: #4b5563; margin-top: 0.8rem; }
-        .markdown-body p { font-size: 0.95rem; color: #374151; line-height: 1.6; margin-bottom: 0.8rem; text-align: justify; }
-        
-        /* 列表转卡片风格 */
-        .markdown-body ul, .markdown-body ol { padding-left: 0; margin-bottom: 1rem; }
-        .markdown-body li { 
-            list-style: none; 
-            background: rgba(255,255,255,0.6);
-            border: 1px solid #e5e7eb;
-            margin-bottom: 0.5rem; 
-            padding: 10px; 
-            border-radius: 8px;
-            font-size: 0.9rem;
-            color: #4b5563;
-            position: relative;
-            padding-left: 1.5rem;
+        /* --- 输入区域 --- */
+        .control-panel {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        /* 列表项前面的小装饰 */
-        .markdown-body li::before {
+        .label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #555; }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+        textarea:focus { outline: none; border-color: #F59E0B; background: #fff; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.8; }
+        .btn-render { background: #374151; color: white; }
+        .btn-save { background: #F59E0B; color: white; }
+
+        /* --- 预览卡片容器 (截图对象) --- */
+        .preview-wrapper {
+            width: 100%;
+            max-width: 375px; /* 模拟手机宽度 */
+            margin-bottom: 50px;
+        }
+
+        #card-capture {
+            background: linear-gradient(135deg, #fffbf0 0%, #ffffff 100%);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 卡片内部装饰 --- */
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; opacity: 0.6; }
+        .dots { display: flex; gap: 6px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .brand { font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #888; }
+
+        .card-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: flex-end; }
+        .footer-text { font-size: 12px; color: #bbb; }
+
+        /* --- Markdown 内容排版样式 --- */
+        .markdown-content { font-size: 15px; line-height: 1.7; color: #444; }
+        
+        /* 标题 */
+        .markdown-content h1 { 
+            font-size: 22px; 
+            color: #111; 
+            margin-bottom: 15px; 
+            position: relative;
+            display: inline-block;
+        }
+        .markdown-content h1::after {
+            content: ''; display: block; width: 100%; height: 4px; 
+            background: rgba(245, 158, 11, 0.3); /* 黄色下划线 */
+            position: absolute; bottom: 2px; left: 0;
+        }
+        
+        .markdown-content h2 {
+            font-size: 16px;
+            background: #f3f4f6;
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            display: inline-block;
+            font-weight: 700;
+        }
+
+        .markdown-content p { margin-bottom: 12px; text-align: justify; }
+
+        /* 重点加粗 */
+        .markdown-content strong {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 0 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* 列表转卡片 */
+        .markdown-content ul, .markdown-content ol { padding: 0; margin-bottom: 15px; }
+        .markdown-content li {
+            list-style: none;
+            background: rgba(255,255,255,0.8);
+            border: 1px solid #eee;
+            margin-bottom: 8px;
+            padding: 10px 10px 10px 24px; /* 左边距留给圆点 */
+            border-radius: 8px;
+            position: relative;
+            font-size: 14px;
+        }
+        .markdown-content li::before {
             content: "•";
             color: #F59E0B;
-            font-weight: bold;
-            font-size: 1.5rem;
+            font-size: 20px;
             position: absolute;
-            left: 0.4rem;
-            top: -0.1rem;
+            left: 8px;
+            top: -2px;
         }
-        
-        /* 重点加粗部分 */
-        .markdown-body strong { color: #b45309; background: #fef3c7; padding: 0 4px; border-radius: 4px; }
-        
-        /* 代码块 */
-        .markdown-body pre { background: #1f2937; color: #f3f4f6; padding: 10px; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; margin-bottom: 1rem; }
-        .markdown-body code { font-family: monospace; background: #f3f4f6; padding: 2px 4px; border-radius: 4px; color: #dc2626; font-size: 0.9em; }
-        .markdown-body pre code { background: transparent; color: inherit; }
 
-        .loading { display: none; }
-        .loading.active { display: flex; }
+        /* 引用块 */
+        .markdown-content blockquote {
+            border-left: 4px solid #F59E0B;
+            background: #fff;
+            padding: 10px 15px;
+            margin: 10px 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 加载动画 */
+        .loading-mask {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 999;
+            display: none; justify-content: center; align-items: center; color: white;
+        }
     </style>
 </head>
-<body class="p-4 flex flex-col items-center min-h-screen">
+<body>
 
-    <!-- 输入区域 -->
-    <div class="w-full max-w-md mb-4 space-y-2">
-        <label class="block text-sm font-medium text-gray-700">粘贴 Gemini 的回答:</label>
-        <textarea id="input-text" class="w-full h-32 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm" placeholder="# 粘贴在这里..."></textarea>
-        
-        <div class="flex gap-2">
-            <button onclick="renderText()" class="flex-1 bg-gray-800 text-white py-2 rounded-lg font-medium active:bg-gray-900 transition shadow">1. 整理排版</button>
-            <button onclick="saveImage()" class="flex-1 bg-yellow-500 text-white py-2 rounded-lg font-medium active:bg-yellow-600 transition shadow">2. 保存图片</button>
+    <!-- 1. 操作面板 -->
+    <div class="control-panel">
+        <label class="label">👇 请在此粘贴 Gemini 的回答文字：</label>
+        <textarea id="input-text" placeholder="例如：
+# 标题
+这里是正文内容...
+- 列表项1
+- 列表项2"></textarea>
+        <div class="btn-group">
+            <button class="btn-render" onclick="render()">1. 整理排版</button>
+            <button class="btn-save" onclick="downloadImage()">2. 保存图片</button>
         </div>
     </div>
 
-    <!-- 预览区域 (将被截图的部分) -->
-    <div id="capture-wrapper" class="w-full max-w-[400px] overflow-hidden rounded-xl shadow-2xl mb-10">
-        <div id="capture-area" class="p-6 min-h-[400px] flex flex-col">
-            <!-- 头部装饰 -->
-            <div class="flex justify-between items-center mb-4 opacity-50">
-                <div class="flex gap-1">
-                    <div class="w-2 h-2 rounded-full bg-red-400"></div>
-                    <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
-                    <div class="w-2 h-2 rounded-full bg-green-400"></div>
+    <!-- 2. 预览卡片 (真正生成图片的地方) -->
+    <div class="preview-wrapper">
+        <div id="card-capture">
+            <!-- 头部 -->
+            <div class="card-header">
+                <div class="dots">
+                    <div class="dot" style="background:#ff5f56"></div>
+                    <div class="dot" style="background:#ffbd2e"></div>
+                    <div class="dot" style="background:#27c93f"></div>
                 </div>
-                <div class="text-[10px] tracking-widest uppercase font-bold">GEMINI NOTE</div>
-            </div>
-            
-            <!-- 内容区域 -->
-            <div id="content-output" class="markdown-body flex-1">
-                <!-- 默认占位内容 -->
-                <h1>这里显示整理后的内容</h1>
-                <p>请在上方输入框粘贴文字，点击“整理排版”查看效果。</p>
-                <ul>
-                    <li>支持自动识别标题</li>
-                    <li>支持列表卡片化</li>
-                    <li>自动美化重点文字</li>
-                </ul>
+                <div class="brand">GEMINI NOTE</div>
             </div>
 
-            <!-- 底部署名 -->
-            <div class="mt-8 pt-4 border-t border-gray-200 flex justify-between items-end">
-                <div class="text-xs text-gray-400">Generated by AI Helper</div>
-                <div class="text-2xl opacity-20">✨</div>
+            <!-- 内容区 -->
+            <div id="output-content" class="markdown-content">
+                <!-- 初始提示 -->
+                <div style="text-align: center; color: #999; margin-top: 50px;">
+                    <h3>✨ 欢迎使用</h3>
+                    <p style="text-align: center; font-size: 13px;">请在上方输入框粘贴文字<br>点击“整理排版”即可预览</p>
+                </div>
+            </div>
+
+            <!-- 底部 -->
+            <div class="card-footer">
+                <div class="footer-text">Structured by AI Tool</div>
+                <div style="font-size: 20px; opacity: 0.3;">✨</div>
             </div>
         </div>
     </div>
 
-    <!-- Loading 提示 -->
-    <div id="loading" class="loading fixed inset-0 bg-black bg-opacity-50 z-50 justify-center items-center text-white">
-        生成中...
-    </div>
+    <div id="loading" class="loading-mask">生成图片中...</div>
 
     <script>
-        // 初始化 Markdown 配置
-        marked.setOptions({
-            breaks: true, // 支持回车换行
-            gfm: true     // GitHub 风格
-        });
-
-        // 1. 渲染文字逻辑
-        function renderText() {
+        // 核心排版函数
+        function render() {
             const input = document.getElementById('input-text').value;
-            const output = document.getElementById('content-output');
+            const output = document.getElementById('output-content');
             
-            if (!input.trim()) return;
+            if (!input.trim()) {
+                alert("请先粘贴 Gemini 的回答内容！");
+                return;
+            }
 
-            // 将 Markdown 转换为 HTML
-            const htmlContent = marked.parse(input);
-            output.innerHTML = htmlContent;
+            // 检查 marked 是否加载成功
+            if (typeof marked === 'undefined') {
+                alert("网络原因导致核心库加载失败，请尝试刷新页面。");
+                output.innerHTML = "<p style='color:red'>组件加载失败，请检查网络</p>";
+                return;
+            }
+
+            // 解析 Markdown
+            output.innerHTML = marked.parse(input);
         }
 
-        // 2. 生成图片逻辑
-        function saveImage() {
-            const element = document.getElementById('capture-area');
+        // 截图下载函数
+        function downloadImage() {
+            const element = document.getElementById('card-capture');
             const loading = document.getElementById('loading');
             
-            // 显示 Loading
-            loading.classList.add('active');
+            // 简单的防空检查
+            const input = document.getElementById('input-text').value;
+            if(!input.trim()) {
+                alert("内容为空，生成的是白纸哦~");
+            }
+
+            loading.style.display = 'flex';
             
-            // 稍微延迟让 DOM 稳定
+            // 延迟执行确保渲染完成
             setTimeout(() => {
                 html2canvas(element, {
-                    scale: 3, // 提高清晰度 (3倍图)
+                    scale: 3, // 高清
                     useCORS: true,
-                    backgroundColor: null, // 保持背景透明度设置
-                    logging: false
+                    backgroundColor: null
                 }).then(canvas => {
-                    // 创建下载链接
                     const link = document.createElement('a');
-                    link.download = 'gemini-note-' + Date.now() + '.png';
+                    link.download = 'Note_' + getTimestamp() + '.png';
                     link.href = canvas.toDataURL('image/png');
                     link.click();
-                    
-                    loading.classList.remove('active');
+                    loading.style.display = 'none';
                 }).catch(err => {
                     console.error(err);
-                    alert('生成失败，请重试');
-                    loading.classList.remove('active');
+                    alert("生成失败，可能是浏览器兼容性问题");
+                    loading.style.display = 'none';
                 });
             }, 100);
+        }
+
+        function getTimestamp() {
+            const now = new Date();
+            return `${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
         }
     </script>
 </body>
